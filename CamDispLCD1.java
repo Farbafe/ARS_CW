@@ -132,14 +132,17 @@ public class CamDispLCD1 {
             
             if (MOVEMENT_ENABLED) {
 	            if (centreLightIntensity == LightIntensity.LIGHT) {
+	            	Delay.msDelay(120);
 	            	motorLeft.forward();
 	            	motorRight.forward();
 	            }
 	            else if (leftLightIntensity == LightIntensity.LIGHT && rightLightIntensity == LightIntensity.DARK) {
+	            	Delay.msDelay(120);
 	            	motorLeft.flt();
 	            	motorRight.forward();
 	            }
 	            else if (leftLightIntensity == LightIntensity.DARK && rightLightIntensity == LightIntensity.LIGHT) {
+	            	Delay.msDelay(120);
 	            	motorLeft.forward();
 	            	motorRight.flt();
 	            	// do not float - instead use 30% of the speed for the flt and 100% of the non-flt
@@ -192,22 +195,22 @@ public class CamDispLCD1 {
     
     public static void dispSectionedFrame() {
     	if (leftLightIntensity == LightIntensity.LIGHT) {
-    		setDisp(0, 0, HEIGHT, WIDTH/3, 1);
-    	}
-    	else {
     		setDisp(0, 0, HEIGHT, WIDTH/3, 0);
     	}
-    	if (centreLightIntensity == LightIntensity.LIGHT) {
-    		setDisp(0, WIDTH/3, HEIGHT, (WIDTH/3)*2, 1);
-    	}
     	else {
+    		setDisp(0, 0, HEIGHT, WIDTH/3, 1);
+    	}
+    	if (centreLightIntensity == LightIntensity.LIGHT) {
     		setDisp(0, WIDTH/3, HEIGHT, (WIDTH/3)*2, 0);
     	}
+    	else {
+    		setDisp(0, WIDTH/3, HEIGHT, (WIDTH/3)*2, 1);
+    	}
     	if (rightLightIntensity == LightIntensity.LIGHT) {
-    		setDisp(0, (WIDTH/3)*2, HEIGHT, WIDTH, 1);
+    		setDisp(0, (WIDTH/3)*2, HEIGHT, WIDTH, 0);
     	}
     	else {
-    		setDisp(0, (WIDTH/3)*2, HEIGHT, WIDTH, 0);
+    		setDisp(0, (WIDTH/3)*2, HEIGHT, WIDTH, 1);
     	}
     }
     
