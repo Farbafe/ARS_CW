@@ -12,7 +12,7 @@ import lejos.hardware.video.Video;
 import lejos.robotics.RegulatedMotor;
 import lejos.utility.Delay;
 public class Task1 {
-
+    private static boolean isGreyDetectorMode = true;
 
     private static final int WIDTH = 160;
     private static final int HEIGHT = 120;
@@ -44,18 +44,16 @@ public class Task1 {
         Video video = ev3.getVideo();
         video.open(WIDTH, HEIGHT);
         byte[] frame = video.createFrame();
-        int blackLeft, blackRight;
+        int blackLeft, blackRight, greyArea;
             
         while (Button.ESCAPE.isUp()) {
             blackLeft = 0;
             blackRight = 0;
+            greyArea = 0;
             video.grabFrame(frame);
                        
             // Create a frame of luminance values
-            extractLuminanceValues(frame);
-            
-            // Display the frame
-            dispFrame();            
+            extractLuminanceValues(frame);   
             
             // Adjust threshold?
             if (Button.UP.isDown()) {
@@ -63,10 +61,61 @@ public class Task1 {
                 if (threshold > 255)
                     threshold = 255;
             }
-            else if (Button.DOWN.isDown()) { 
+            else if (Button.DOWN.isDown()) { // if down is pushed down and hold, does threshold keep changing? - need to check, maybe that's why we were getting weird results 
                 threshold -=5;
                 if (threshold < 0)
                     threshold = 0;
+            }
+            
+            if (Button.RIGHT.isDown()) {
+                isGreyDetectorMode = !isGreyDetectorMode;
+                stop();
+                Delay.msDelay(1000);
+            }
+            
+            if (isGreyDetectorMode) {
+                for (int y = HEIGHT / 2 - 5; y < HEIGHT / 2 + 5; ++y) {
+                    for (int x = WIDTH / 2 - 5; x < WIDTH / 2 + 5; ++x) {
+                        if (luminanceFrame[y][x] < threshold && luminanceFrame[y][x] > (threshold - 20)) {
+                            ++greyArea;
+                            if (Button.LEFT.isDown()) {
+                                System.out.println("");
+                                System.out.println("");
+                                System.out.println("");
+                                System.out.println("");
+                                System.out.println("");
+                                System.out.println("   greyArea:  " + greyArea);
+                                System.out.println("   threshold: " + threshold);
+                            }
+                            else {
+                                LCD.setPixel(x + 10, y, 1);
+                            }
+                        }
+                        else {
+                            --greyArea;
+                            if (Button.LEFT.isDown()) {
+                                System.out.println("");
+                                System.out.println("");
+                                System.out.println("");
+                                System.out.println("");
+                                System.out.println("");
+                                System.out.println("   greyArea:  " + greyArea);
+                                System.out.println("   threshold: " + threshold);
+                            }
+                            else {
+                                LCD.setPixel(x + 10, y, 0);
+                            }
+                        }
+                    }
+                }
+                if (greyArea > 0) {
+                    Sound.beep();
+                }
+//                setDisp(0, WIDTH-10, 10, WIDTH, greyArea > 0 ? 1 : 0);
+                continue;
+            }
+            else {
+                dispFrame(); // todo we should remove dispFrame for Task1 (to reduce computation needed)
             }
             
             for (int y = 0; y <= HEIGHT / 2; y += 2) {
@@ -145,6 +194,14 @@ public class Task1 {
                 else {
                     LCD.setPixel(x, y, 0);
                 }    
+            }
+        }
+    }
+    
+    public static void setDisp(int y0, int x0, int height, int width, int color) {
+        for (int y = y0; y < height; ++y) {
+            for (int x = x0; x < width; ++x) {
+                LCD.setPixel(x, y, color);
             }
         }
     }
