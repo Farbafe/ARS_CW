@@ -96,12 +96,12 @@ public class Task1 {
             else if (blackLeft >= blackRight * 0.9 && blackLeft <= blackRight * 1.1) {
                 if (robotMovement != RobotMovement.STRAIGHT) {
                     if (robotMovement == RobotMovement.LEFT) {
-                        motorLeft.setSpeed(180);
-                        motorLeft.rotate(70, false);
+                        motorRight.setSpeed(180);
+                        motorRight.rotate(-70, false);
                     }
                     else {
-                        motorRight.setSpeed(180);
-                        motorRight.rotate(70, false);
+                        motorLeft.setSpeed(180);
+                        motorLeft.rotate(-70, false);
                     }
                     goStraight();
                 }
