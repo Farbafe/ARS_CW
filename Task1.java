@@ -12,7 +12,7 @@ import lejos.hardware.video.Video;
 import lejos.robotics.RegulatedMotor;
 import lejos.utility.Delay;
 public class Task1 {
-    private static boolean isGreyDetectorMode = false;
+    private static boolean isGreyDetectorMode = true;
 
     private static final int WIDTH = 160;
     private static final int HEIGHT = 120;
@@ -25,12 +25,10 @@ public class Task1 {
     enum RobotMovement {
         LEFT,
         STRAIGHT,
-        RIGHT,
-        REVERSE,
-        TURN
+        RIGHT
     }
     private static RobotMovement robotMovement = RobotMovement.STRAIGHT;
-
+     
     public Task1() {
         // Initialize luminance frame
         for (int x=0; x<WIDTH; x += 1) {
@@ -47,7 +45,6 @@ public class Task1 {
         video.open(WIDTH, HEIGHT);
         byte[] frame = video.createFrame();
         int blackLeft, blackRight, greyArea;
-        boolean isAllBlack = false;
             
         while (Button.ESCAPE.isUp()) {
             blackLeft = 0;
@@ -73,7 +70,7 @@ public class Task1 {
             if (Button.RIGHT.isDown()) {
                 isGreyDetectorMode = !isGreyDetectorMode;
                 stop();
-                Delay.msDelay(500);
+                Delay.msDelay(1000);
             }
             
             if (isGreyDetectorMode) {
@@ -118,103 +115,57 @@ public class Task1 {
                 continue;
             }
             else {
-//                dispFrame(); // todo we should remove dispFrame for Task1 (to reduce computation needed)
+                dispFrame(); // todo we should remove dispFrame for Task1 (to reduce computation needed)
             }
             
-            for (int y = 18; y <= HEIGHT / 2 + 18; y += 2) {
-                if (isAllBlack) {
-                    for (int x = WIDTH / 16 * 5; x <= WIDTH / 16 * 5 + 2; ++x) {
-                        if (luminanceFrame[y][x] < threshold) {
-                            ++blackLeft;
-                        }
-                    }
-                    for (int x = WIDTH / 16 * 11 - 2; x <= WIDTH / 16 * 11; ++x) {
-                        if (luminanceFrame[y][x] < threshold) {
-                            ++blackRight;
-                        }
+            for (int y = 0; y <= HEIGHT / 2; y += 2) {
+                for (int x = WIDTH / 3; x <= WIDTH / 3 + 2; ++x) {
+                    if (luminanceFrame[y][x] < threshold) {
+                        ++blackLeft;
                     }
                 }
-                else {
-                    for (int x = WIDTH / 16 * 7; x <= WIDTH / 16 * 7 + 2; ++x) {
-                        if (luminanceFrame[y][x] < threshold) {
-                            ++blackLeft;
-                        }
+                for (int x = WIDTH / 3 * 2 - 2; x <= WIDTH / 3 * 2; ++x) {
+                    if (luminanceFrame[y][x] < threshold) {
+                        ++blackRight;
                     }
-                    for (int x = WIDTH / 16 * 9 - 2; x <= WIDTH / 16 * 9; ++x) {
-                        if (luminanceFrame[y][x] < threshold) {
-                            ++blackRight;
-                        }
-                    }
-                }
+                } 
             }
             
             //Four Conditions
-            if (blackLeft >= blackRight * 0.9 && blackLeft <= blackRight * 1.1 && (blackLeft >= 81)) {
-//                if (robotMovement != RobotMovement.RIGHT) {
-//                    turnRight();
-//                }
-                if (robotMovement != RobotMovement.REVERSE) {
-                    goBackward();
-                    Delay.msDelay(40);
-                }
-                else {
+            if (blackLeft >= blackRight * 0.9 && blackLeft <= blackRight * 1.1 && (blackLeft <= 24)) {
+                if (robotMovement != RobotMovement.RIGHT) {
                     turnRight();
-                    Delay.msDelay(100);
-                    // todo
-                    // record what it sees
-                    // or base it on robotMovement
-                    turnLeft();
-                    Delay.msDelay(100);
-                }
-                blackLeft = 0;
-                blackRight = 0;
-                for (int y = 28; y <= HEIGHT / 6 + 28; y += 2) {
-                    for (int x = WIDTH / 16 * 5; x <= WIDTH / 16 * 5 + 2; ++x) {
-                        if (luminanceFrame[y][x] < threshold) {
-                            ++blackLeft;
-                        }
-                    }
-                    for (int x = WIDTH / 16 * 11 - 2; x <= WIDTH / 16 * 11; ++x) {
-                        if (luminanceFrame[y][x] < threshold) {
-                            ++blackRight;
-                        }
-                    }
-                }
-                if (Math.abs(blackRight - blackLeft) <= 10 && blackLeft <= 10) {
-                    turnAround();
-                    Sound.beep();
-                }
-                else {
-                    isAllBlack = true;
-                }
+                }                
+                // todo have condition, if this was preceded by
+                // an all white region for a bit, then turn exactly 
+                // 180 degrees and follow the path. This means it
+                // has reached the end of the maze, and the end of
+                // the white square perimeter.
             }
             else if (blackLeft >= blackRight * 0.9 && blackLeft <= blackRight * 1.1) {
                 if (robotMovement != RobotMovement.STRAIGHT) {
                     if (robotMovement == RobotMovement.LEFT) {
-                        turnRight();
-                        Delay.msDelay(75);
+                        motorRight.setSpeed(180);
+                        motorRight.rotate(-70, false);
                     }
                     else {
-                        turnLeft();
-                        Delay.msDelay(75);
+                        motorLeft.setSpeed(180);
+                        motorLeft.rotate(-70, false);
                     }
                     goStraight();
                 }
-                isAllBlack = false;
             }
             else if (blackLeft > blackRight) {
                 if (robotMovement != RobotMovement.RIGHT) {
-                    Delay.msDelay(50);
+                    Delay.msDelay(100);
                     turnRight();
                 }
-                isAllBlack = false;
             }
             else if (blackLeft < blackRight) {
                 if (robotMovement != RobotMovement.LEFT) {
-                    Delay.msDelay(50);
+                    Delay.msDelay(100);
                     turnLeft();
                 }
-                isAllBlack = false;
             }                
         }
         video.close();
@@ -282,21 +233,5 @@ public class Task1 {
         motorRight.forward();
         motorLeft.forward();
         robotMovement = RobotMovement.STRAIGHT;
-    }
-    
-    public static void goBackward() {
-        motorLeft.setSpeed(150);
-        motorRight.setSpeed(150);
-        motorRight.backward();
-        motorLeft.backward();
-        robotMovement = RobotMovement.REVERSE;
-    }
-    
-    public static void turnAround() {
-        motorLeft.setSpeed(360);
-        motorRight.setSpeed(360);
-        motorRight.rotate(170, false);
-        motorLeft.rotate(-170, false);
-        robotMovement = RobotMovement.TURN;
     }
 }
