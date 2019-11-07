@@ -27,9 +27,12 @@ public class Task1 {
         STRAIGHT,
         RIGHT,
         REVERSE,
-        TURN
+        TURN,
+        RIGHT_REVERSE,
+        LEFT_REVERSE,
+        NONE
     }
-    private static RobotMovement robotMovement = RobotMovement.STRAIGHT;
+    private static RobotMovement robotMovement = RobotMovement.NONE;
 
     public Task1() {
         // Initialize luminance frame
@@ -118,7 +121,7 @@ public class Task1 {
                 continue;
             }
             else {
-//                dispFrame(); // todo we should remove dispFrame for Task1 (to reduce computation needed)
+//                dispFrame(); // todo we should comment dispFrame for Task1 (to reduce computation needed)
             }
             
             for (int y = 18; y <= HEIGHT / 2 + 18; y += 2) {
@@ -149,52 +152,92 @@ public class Task1 {
             }
             
             //Four Conditions
-            if (blackLeft >= blackRight * 0.9 && blackLeft <= blackRight * 1.1 && (blackLeft >= 81)) {
-//                if (robotMovement != RobotMovement.RIGHT) {
-//                    turnRight();
-//                }
+            if (blackLeft >= blackRight * 0.9 && blackLeft <= blackRight * 1.1 && (blackLeft >= 81 || blackRight >= 81)) {
                 if (robotMovement != RobotMovement.REVERSE) {
                     goBackward();
                     Delay.msDelay(40);
+                    stop();
+                    isAllBlack = true; 
+                    // the idea is that by reversing and checking a wider line
+                    // in the next while loop, the robot can detect some difference 
+                    // in the darkness on the right and left and act differently.
+                    // However, if there is still no measured difference then
+                    // the robot is first going to check for an even wider line 
+                    // and then if that fails it explicitly checks right and left
+                    // views of the robot and then decide what to do.
                 }
                 else {
-                    turnRight();
-                    Delay.msDelay(100);
-                    // todo
-                    // record what it sees
-                    // or base it on robotMovement
-                    turnLeft();
-                    Delay.msDelay(100);
-                }
-                blackLeft = 0;
-                blackRight = 0;
-                for (int y = 28; y <= HEIGHT / 6 + 28; y += 2) {
-                    for (int x = WIDTH / 16 * 5; x <= WIDTH / 16 * 5 + 2; ++x) {
-                        if (luminanceFrame[y][x] < threshold) {
-                            ++blackLeft;
+                    blackLeft = 0;
+                    blackRight = 0;
+                    // the for loop and if statement below checks for little
+                    // darkness at wider lines. If true the robot will turn
+                    // around and the while loop continues.
+                    goBackward();
+                    Delay.msDelay(90);
+                    stop();
+                    for (int y = 18; y <= HEIGHT / 2 + 18; y += 2) {
+                        for (int x = WIDTH / 16 * 5; x <= WIDTH / 16 * 5 + 2; ++x) {
+                            if (luminanceFrame[y][x] < threshold) {
+                                ++blackLeft;
+                            }
+                        }
+                        for (int x = WIDTH / 16 * 11 - 2; x <= WIDTH / 16 * 11; ++x) {
+                            if (luminanceFrame[y][x] < threshold) {
+                                ++blackRight;
+                            }
                         }
                     }
-                    for (int x = WIDTH / 16 * 11 - 2; x <= WIDTH / 16 * 11; ++x) {
-                        if (luminanceFrame[y][x] < threshold) {
-                            ++blackRight;
+                    if (Math.abs(blackRight - blackLeft) <= 10 && (blackLeft <= 10 || blackRight <= 10)) {
+                        turnAround(); // this is a blocking function
+                        Sound.beep();
+                        isAllBlack = false;
+                        Delay.msDelay(50);
+                    }
+                    else {
+                        // now the robot has failed multiple tests, first it failed to 
+                        // reverse and check for wider lines to know what to do, then it
+                        // failed to check for even wider lines. Now we explicitly turn
+                        // right and check and if that fails, we go back to original position
+                        // turn left and decide what to do before continuing the while loop.
+                        if (robotMovement != RobotMovement.RIGHT) {
+                            turnRight();
+                            Delay.msDelay(70);
+                            stop();
+                        }
+                        else if (robotMovement != RobotMovement.LEFT) {
+                            turnRightReversed(); // this brings the robot back to original position
+                            Delay.msDelay(70);
+                            turnLeft();
+                            Delay.msDelay(70);
+                            stop();
+                        }
+                        else {
+                            Sound.beep();
+                            turnAround();
+                            Delay.msDelay(50);
                         }
                     }
-                }
-                if (Math.abs(blackRight - blackLeft) <= 10 && blackLeft <= 10) {
-                    turnAround();
-                    Sound.beep();
-                }
-                else {
-                    isAllBlack = true;
                 }
             }
-            else if (blackLeft >= blackRight * 0.9 && blackLeft <= blackRight * 1.1) {
+            else if ((blackLeft >= blackRight * 0.9 && blackLeft <= blackRight * 1.1) || (Math.abs(blackRight - blackLeft) <= 10)) {
                 if (robotMovement != RobotMovement.STRAIGHT) {
                     if (robotMovement == RobotMovement.LEFT) {
+                        // added the goBackward for a small distance
+                        // because turnLeft and turnRight always move
+                        // the robot a little forward, so hopefully
+                        // this backwards movement will offset that a bit
+                        goBackward();
+                        Delay.msDelay(30);
                         turnRight();
                         Delay.msDelay(75);
                     }
                     else {
+                        // added the goBackward for a small distance
+                        // because turnLeft and turnRight always move
+                        // the robot a little forward, so hopefully
+                        // this backwards movement will offset that a bit
+                        goBackward();
+                        Delay.msDelay(30);
                         turnLeft();
                         Delay.msDelay(75);
                     }
@@ -298,5 +341,21 @@ public class Task1 {
         motorRight.rotate(170, false);
         motorLeft.rotate(-170, false);
         robotMovement = RobotMovement.TURN;
+    }
+    
+    public static void turnRightReversed() {
+        motorLeft.setSpeed(180);
+        motorRight.setSpeed(45);
+        motorLeft.backward();
+        motorRight.forward();
+        robotMovement = RobotMovement.RIGHT_REVERSE;
+    }
+    
+    public static void turnLeftReversed() {
+        motorLeft.setSpeed(45); 
+        motorRight.setSpeed(180);
+        motorLeft.forward();
+        motorRight.backward();
+        robotMovement = RobotMovement.LEFT_REVERSE;
     }
 }
