@@ -12,7 +12,7 @@ import lejos.hardware.video.Video;
 import lejos.robotics.RegulatedMotor;
 import lejos.utility.Delay;
 public class Task1 {
-    private static boolean isGreyDetectorMode = false;
+    private static boolean isGreyDetectorMode = true;
 
     private static final int WIDTH = 160;
     private static final int HEIGHT = 120;
@@ -80,43 +80,48 @@ public class Task1 {
             }
             
             if (isGreyDetectorMode) {
-                for (int y = HEIGHT / 2 - 5; y < HEIGHT / 2 + 5; ++y) {
-                    for (int x = WIDTH / 2 - 5; x < WIDTH / 2 + 5; ++x) {
-                        if (luminanceFrame[y][x] < threshold && luminanceFrame[y][x] > (threshold - 20)) {
-                            ++greyArea;
-                            if (Button.LEFT.isDown()) {
-                                System.out.println("");
-                                System.out.println("");
-                                System.out.println("");
-                                System.out.println("");
-                                System.out.println("");
-                                System.out.println("   greyArea:  " + greyArea);
-                                System.out.println("   threshold: " + threshold);
-                            }
-                            else {
-                                LCD.setPixel(x + 10, y, 1);
-                            }
-                        }
-                        else {
-                            --greyArea;
-                            if (Button.LEFT.isDown()) {
-                                System.out.println("");
-                                System.out.println("");
-                                System.out.println("");
-                                System.out.println("");
-                                System.out.println("");
-                                System.out.println("   greyArea:  " + greyArea);
-                                System.out.println("   threshold: " + threshold);
-                            }
-                            else {
-                                LCD.setPixel(x + 10, y, 0);
-                            }
-                        }
-                    }
-                }
-                if (greyArea > 0) {
+                if (isGrey(true)) {
                     Sound.beep();
                 }
+                
+//                for (int y = HEIGHT / 2 - 5; y < HEIGHT / 2 + 5; ++y) {
+//                    for (int x = WIDTH / 2 - 5; x < WIDTH / 2 + 5; ++x) {
+//                        if (luminanceFrame[y][x] < threshold && luminanceFrame[y][x] > (threshold - 20)) {
+//                            ++greyArea;
+//                            if (Button.LEFT.isDown()) {
+//                                System.out.println("");
+//                                System.out.println("");
+//                                System.out.println("");
+//                                System.out.println("");
+//                                System.out.println("");
+//                                System.out.println("   greyArea:  " + greyArea);
+//                                System.out.println("   threshold: " + threshold);
+//                            }
+//                            else {
+//                                LCD.setPixel(x + 10, y, 1);
+//                            }
+//                        }
+//                        else {
+//                            --greyArea;
+//                            if (Button.LEFT.isDown()) {
+//                                System.out.println("");
+//                                System.out.println("");
+//                                System.out.println("");
+//                                System.out.println("");
+//                                System.out.println("");
+//                                System.out.println("   greyArea:  " + greyArea);
+//                                System.out.println("   threshold: " + threshold);
+//                            }
+//                            else {
+//                                LCD.setPixel(x + 10, y, 0);
+//                            }
+//                        }
+//                    }
+//                }
+//                if (greyArea > 0) {
+//                    Sound.beep();
+//                }
+                
 //                setDisp(0, WIDTH-10, 10, WIDTH, greyArea > 0 ? 1 : 0);
                 continue;
             }
@@ -357,5 +362,45 @@ public class Task1 {
         motorLeft.forward();
         motorRight.backward();
         robotMovement = RobotMovement.LEFT_REVERSE;
+    }
+    
+    //check a 20*5 center block if it is grey
+    public static boolean isGrey(boolean outputValues) {
+        int pixelTotalCount = 0;
+        int totalLuminance = 0;
+        
+        // average white block luminance
+        // need further testing 
+        int WHITE = 150;
+        
+        for (int y = 18; y <= HEIGHT / 6 + 18; ++y) {
+            for (int x = WIDTH / 2 - 2; x <= WIDTH / 2 + 2; ++x) {
+                totalLuminance += luminanceFrame[y][x];
+                ++pixelTotalCount;
+            }
+        }
+        
+        int avgLuminance = totalLuminance / pixelTotalCount;
+        
+        if (outputValues) {
+            // testing part
+            System.out.println("");
+            System.out.println("");
+            System.out.println("");
+            System.out.println("");
+            System.out.println("");
+            System.out.println("");
+            System.out.println(" AVGLuminance: " + avgLuminance);
+            System.out.println("   threshold: " + threshold);
+        }
+        
+        // if the block average luminance is greater than threshold
+        // and lesser than average white area luminance
+        if (avgLuminance > threshold && avgLuminance < WHITE) {
+            return true;
+        }
+        else {
+            return false;
+        }
     }
 }
