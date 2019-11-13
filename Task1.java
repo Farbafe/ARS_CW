@@ -19,7 +19,7 @@ public class Task1 {
     private static final int WIDTH = 160;
     private static final int HEIGHT = 120;
     //private static final int NUM_PIXELS = WIDTH * HEIGHT;
-    
+
     private static int [][] luminanceFrame = new int [HEIGHT][WIDTH];
     private static int threshold = 90;
     private static RegulatedMotor motorRight = new EV3LargeRegulatedMotor(MotorPort.A);
@@ -45,9 +45,9 @@ public class Task1 {
             }
         }
     }
-        
+
     public static void main(String[] args) throws IOException  {
-         
+
         EV3 ev3 = (EV3) BrickFinder.getLocal();
         Video video = ev3.getVideo();
         video.open(WIDTH, HEIGHT);
@@ -57,14 +57,8 @@ public class Task1 {
         boolean isCountingGrey = false;
         color.setCurrentMode("Ambient");
         float[] sample = new float[color.sampleSize()];
-            
+
         while (Button.ESCAPE.isUp()) {
-//            if (isCountingGrey) {
-//                color.fetchSample(sample, 0);
-//                if (sample[0] < 0.37 && sample[0] > 0.34) {
-//                    ++greyCount;
-//                }
-//            }
             color.fetchSample(sample, 0);
             if (sample[0] < 0.37 && sample[0] > 0.34) {
                 color.fetchSample(sample, 0);
@@ -74,14 +68,12 @@ public class Task1 {
                     stop();
                     color.fetchSample(sample, 0);
                     if (sample[0] < 0.37 && sample[0] > 0.34) {
+                        Delay.msDelay(700);
                         Sound.beep();
                     }
-//                    Sound.beep();
-//                    stop();
-//                    Delay.msDelay(1000);
                 }
             }
-            
+
             blackLeftWide = 0;
             blackLeft = 0;
             blackCentre = 0;
@@ -89,10 +81,10 @@ public class Task1 {
             blackRightWide = 0;
             greyArea = 0;
             video.grabFrame(frame);
-                       
+
             // Create a frame of luminance values
             extractLuminanceValues(frame);   
-            
+
             // Adjust threshold?
             if (Button.UP.isDown()) {
                 threshold +=5;
@@ -104,13 +96,13 @@ public class Task1 {
                 if (threshold < 0)
                     threshold = 0;
             }
-            
+
             if (Button.RIGHT.isDown()) {
                 isGreyDetectorMode = !isGreyDetectorMode;
                 stop();
                 Delay.msDelay(500);
             }
-            
+
             if (isGreyDetectorMode) {
                 for (int y = HEIGHT / 2 - 5; y < HEIGHT / 2 + 5; ++y) {
                     for (int x = WIDTH / 2 - 5; x < WIDTH / 2 + 5; ++x) {
@@ -149,15 +141,15 @@ public class Task1 {
                 if (greyArea > 0) {
                     Sound.beep();
                 }
-//                setDisp(0, WIDTH-10, 10, WIDTH, greyArea > 0 ? 1 : 0);
+                //                setDisp(0, WIDTH-10, 10, WIDTH, greyArea > 0 ? 1 : 0);
                 continue;
             }
             else {
 //                dispFrame(); // todo we should comment dispFrame for Task1 (to reduce computation needed)
             }
-            
+            // y 18 to y 60 + 18 (change to 2 or 3 layers?) todo
             for (int y = 18; y <= HEIGHT / 2 + 18; y += 2) {
-                for (int x = WIDTH / 16 * 2; x <= WIDTH / 16 * 2 + 2; ++x) {
+                for (int x = WIDTH / 16 * 2 - 2; x <= WIDTH / 16 * 2; ++x) {
                     if (luminanceFrame[y][x] < threshold) {
                         ++blackLeftWide;
                     }
@@ -177,129 +169,40 @@ public class Task1 {
                         ++blackRight;
                     }
                 }
-                for (int x = WIDTH / 16 * 14 - 2; x <= WIDTH / 16 * 14; ++x) {
+                for (int x = WIDTH / 16 * 14; x <= WIDTH / 16 * 14 + 2; ++x) {
                     if (luminanceFrame[y][x] < threshold) {
                         ++blackRightWide;
                     }
                 }
             }
-            
-            if (blackLeftWide <= 10 && blackCentre <= 10 && blackRightWide <= 10) {
-//                Sound.beep();
-//                turnAround();
+
+            if ((robotMovement == RobotMovement.LEFT || robotMovement == RobotMovement.RIGHT) && blackCentre >= 9) {
+                continue; // i.e keep turning until the centre is less black
             }
-            else if (blackCentre <= 10) {
+
+            if (blackCentre <= 9) {
                 goStraight();
-            }
-            else if (blackLeft >= blackRight * 0.9 && blackLeft <= blackRight * 1.1 && (blackLeft >= 81 || blackRight >= 81)) {
-                if (robotMovement != RobotMovement.REVERSE) {
-                    goBackward();
-                    // the idea is that by reversing and checking a wider line
-                    // in the next while loop, the robot can detect some difference 
-                    // in the darkness on the right and left and act differently.
-                    // However, if there is still no measured difference then
-                    // the robot is first going to check for an even wider line 
-                    // and then if that fails it explicitly checks right and left
-                    // views of the robot and then decide what to do.
-                }
-//                else {
-//                    blackLeft = 0;
-//                    blackRight = 0;
-//                    // the for loop and if statement below checks for little
-//                    // darkness at wider lines. If true the robot will turn
-//                    // around and the while loop continues.
-//                    goBackward();
-//                    Delay.msDelay(180);
-//                    stop();
-//                    for (int y = 22; y <= HEIGHT / 2 + 22; y += 2) {
-//                        for (int x = WIDTH / 16 * 5; x <= WIDTH / 16 * 5 + 2; ++x) {
-//                            if (luminanceFrame[y][x] < threshold) {
-//                                ++blackLeft;
-//                            }
-//                        }
-//                        for (int x = WIDTH / 16 * 11 - 2; x <= WIDTH / 16 * 11; ++x) {
-//                            if (luminanceFrame[y][x] < threshold) {
-//                                ++blackRight;
-//                            }
-//                        }
-//                    }
-//                    if (Math.abs(blackRight - blackLeft) <= 10 && (blackLeft <= 10 || blackRight <= 10)) {
-//                        turnAround(); // this is a blocking function
-//                        Sound.beep();
-//                        isAllBlack = false;
-//                        Delay.msDelay(50);
-//                    }
-//                    else {
-//                        // now the robot has failed multiple tests, first it failed to 
-//                        // reverse and check for wider lines to know what to do, then it
-//                        // failed to check for even wider lines. Now we explicitly turn
-//                        // right and check and if that fails, we go back to original position
-//                        // turn left and decide what to do before continuing the while loop.
-//                        if (robotMovement != RobotMovement.RIGHT) {
-//                            turnRight();
-//                            Delay.msDelay(70);
-//                            stop();
-//                        }
-//                        else if (robotMovement != RobotMovement.LEFT) {
-//                            turnRightReversed(); // this brings the robot back to original position
-//                            Delay.msDelay(70);
-//                            turnLeft();
-//                            Delay.msDelay(70);
-//                            stop();
-//                        }
-//                        else {
-//                            Sound.beep();
-//                            turnAround();
-//                            Delay.msDelay(50);
-//                        }
-//                    }
-//                }
-            }
-            else if ((blackLeft >= blackRight * 0.9 && blackLeft <= blackRight * 1.1) || (Math.abs(blackRight - blackLeft) <= 10)) {
-                if (robotMovement != RobotMovement.STRAIGHT) {
-                    if (robotMovement == RobotMovement.LEFT) {
-                        // added the goBackward for a small distance
-                        // because turnLeft and turnRight always move
-                        // the robot a little forward, so hopefully
-                        // this backwards movement will offset that a bit
-                        goBackward();
-                        Delay.msDelay(70);
-                        turnRight();
-                        Delay.msDelay(105);
-                    }
-                    else {
-                        // added the goBackward for a small distance
-                        // because turnLeft and turnRight always move
-                        // the robot a little forward, so hopefully
-                        // this backwards movement will offset that a bit
-                        goBackward();
-                        Delay.msDelay(70);
-                        turnLeft();
-                        Delay.msDelay(105);
-                    }
-                    goStraight();
-                }
-//                isAllBlack = false;
-            }
-            else if (blackLeft > blackRight) {
+            }            
+            else if (blackRight <= 27) {
                 if (robotMovement != RobotMovement.RIGHT) {
-                    Delay.msDelay(50);
+                    Delay.msDelay(30);
                     turnRight();
                 }
-//                isAllBlack = false;
-            }
-            else if (blackLeft < blackRight) {
+            } 
+            else if (blackLeft <= 27) {
                 if (robotMovement != RobotMovement.LEFT) {
-                    Delay.msDelay(50);
+                    Delay.msDelay(30);
                     turnLeft();
                 }
-//                isAllBlack = false;
-            }                
+            }
+            else if (blackLeft >= 81 && blackCentre >= 81 && blackRight >= 81) {
+                Sound.beep();
+                turnAround(); // this is a blocking function
+            }
         }
         video.close();
     }
-    
-    
+
     public static void extractLuminanceValues(byte [] frame) {
         int x,y;
         int doubleWidth = 2*WIDTH; // y1: pos 0; u: pos 1; y2: pos 2; v: pos 3.
@@ -311,8 +214,7 @@ public class Task1 {
             luminanceFrame[y][x] = frame[i] & 0xFF;           
         }
     }
-    
-    
+
     public static void dispFrame() {
         for (int y=0; y<HEIGHT; y++) {
             for (int x=0; x<WIDTH; x++) {
@@ -325,7 +227,7 @@ public class Task1 {
             }
         }
     }
-    
+
     public static void setDisp(int y0, int x0, int height, int width, int color) {
         for (int y = y0; y < height; ++y) {
             for (int x = x0; x < width; ++x) {
@@ -333,12 +235,12 @@ public class Task1 {
             }
         }
     }
-        
+
     public static void stop() {
         motorRight.stop(true);
         motorLeft.stop(true);
     }    
-    
+
     public static void turnRight() {
         motorLeft.setSpeed(180);
         motorRight.setSpeed(45);
@@ -346,7 +248,7 @@ public class Task1 {
         motorRight.backward();
         robotMovement = RobotMovement.RIGHT;
     }
-       
+
     public static void turnLeft() {
         motorLeft.setSpeed(45); // todo if needed we can multiply by normalisedTimeTurning which will be a variable between 0 and 1
         motorRight.setSpeed(180); // try 140, it will turn slower so it'll give the robot more time to react after turning
@@ -354,7 +256,7 @@ public class Task1 {
         motorRight.forward();
         robotMovement = RobotMovement.LEFT;
     }
-    
+
     public static void goStraight() {
         motorLeft.setSpeed(180);
         motorRight.setSpeed(180);
@@ -362,7 +264,7 @@ public class Task1 {
         motorLeft.forward();
         robotMovement = RobotMovement.STRAIGHT;
     }
-    
+
     public static void goBackward() {
         motorLeft.setSpeed(150);
         motorRight.setSpeed(150);
@@ -370,18 +272,17 @@ public class Task1 {
         motorLeft.backward();
         robotMovement = RobotMovement.REVERSE;
     }
-    
+
     public static void turnAround() {
         motorLeft.setSpeed(180);
         motorRight.setSpeed(180);
-        motorRight.rotate(372, false);
-        motorLeft.rotate(-372, false);
+        motorRight.rotate(371, false);
+        motorLeft.rotate(-371, false);
         goStraight();
-        Delay.msDelay(400);
-        stop();
+        Delay.msDelay(500);
         robotMovement = RobotMovement.TURN;
     }
-    
+
     public static void turnRightReversed() {
         motorLeft.setSpeed(180);
         motorRight.setSpeed(45);
@@ -389,7 +290,7 @@ public class Task1 {
         motorRight.forward();
         robotMovement = RobotMovement.RIGHT_REVERSE;
     }
-    
+
     public static void turnLeftReversed() {
         motorLeft.setSpeed(45); 
         motorRight.setSpeed(180);
@@ -397,16 +298,16 @@ public class Task1 {
         motorRight.backward();
         robotMovement = RobotMovement.LEFT_REVERSE;
     }
-    
-//    public static void checkGrey() {
-//        motorLeft.setSpeed(180);
-//        motorRight.setSpeed(180);
-//        for (int x = 0; x < 74; ++x) {
-//            motorLeft.rotate(10, false);
-//            motorRight.rotate(10, false);
-//            // detect if grey, incrmeent
-//        }
-//        if grey > 60 : grey!
-//        
-//    }
+
+    //    public static void checkGrey() {
+    //        motorLeft.setSpeed(180);
+    //        motorRight.setSpeed(180);
+    //        for (int x = 0; x < 74; ++x) {
+    //            motorLeft.rotate(10, false);
+    //            motorRight.rotate(10, false);
+    //            // detect if grey, incrmeent
+    //        }
+    //        if grey > 60 : grey!
+    //        
+    //    }
 }
