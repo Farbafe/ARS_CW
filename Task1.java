@@ -14,8 +14,6 @@ import lejos.hardware.video.Video;
 import lejos.robotics.RegulatedMotor;
 import lejos.utility.Delay;
 public class Task1 {
-    private static boolean isGreyDetectorMode = false;
-
     private static final int WIDTH = 160;
     private static final int HEIGHT = 120;
     //private static final int NUM_PIXELS = WIDTH * HEIGHT;
@@ -53,18 +51,18 @@ public class Task1 {
         video.open(WIDTH, HEIGHT);
         byte[] frame = video.createFrame();
         int blackLeft, blackCentre, blackRight, blackLeftWide, blackRightWide, greyArea, greyCount = 0;
-//        boolean isAllBlack = false;
-        boolean isCountingGrey = false;
+        boolean isAllWhite = false;
         color.setCurrentMode("Ambient");
         float[] sample = new float[color.sampleSize()];
 
         while (Button.ESCAPE.isUp()) {
             color.fetchSample(sample, 0);
             if (sample[0] < 0.37 && sample[0] > 0.34) {
+                Delay.msDelay(40);
                 color.fetchSample(sample, 0);
                 if (sample[0] < 0.37 && sample[0] > 0.34) {
                     goStraight();
-                    Delay.msDelay(150);
+                    Delay.msDelay(140);
                     stop();
                     color.fetchSample(sample, 0);
                     if (sample[0] < 0.37 && sample[0] > 0.34) {
@@ -73,7 +71,7 @@ public class Task1 {
                     }
                 }
             }
-
+            
             blackLeftWide = 0;
             blackLeft = 0;
             blackCentre = 0;
@@ -96,57 +94,9 @@ public class Task1 {
                 if (threshold < 0)
                     threshold = 0;
             }
-
-            if (Button.RIGHT.isDown()) {
-                isGreyDetectorMode = !isGreyDetectorMode;
-                stop();
-                Delay.msDelay(500);
-            }
-
-            if (isGreyDetectorMode) {
-                for (int y = HEIGHT / 2 - 5; y < HEIGHT / 2 + 5; ++y) {
-                    for (int x = WIDTH / 2 - 5; x < WIDTH / 2 + 5; ++x) {
-                        if (luminanceFrame[y][x] < threshold && luminanceFrame[y][x] > (threshold - 20)) {
-                            ++greyArea;
-                            if (Button.LEFT.isDown()) {
-                                System.out.println("");
-                                System.out.println("");
-                                System.out.println("");
-                                System.out.println("");
-                                System.out.println("");
-                                System.out.println("   greyArea:  " + greyArea);
-                                System.out.println("   threshold: " + threshold);
-                            }
-                            else {
-                                LCD.setPixel(x + 10, y, 1);
-                            }
-                        }
-                        else {
-                            --greyArea;
-                            if (Button.LEFT.isDown()) {
-                                System.out.println("");
-                                System.out.println("");
-                                System.out.println("");
-                                System.out.println("");
-                                System.out.println("");
-                                System.out.println("   greyArea:  " + greyArea);
-                                System.out.println("   threshold: " + threshold);
-                            }
-                            else {
-                                LCD.setPixel(x + 10, y, 0);
-                            }
-                        }
-                    }
-                }
-                if (greyArea > 0) {
-                    Sound.beep();
-                }
-                //                setDisp(0, WIDTH-10, 10, WIDTH, greyArea > 0 ? 1 : 0);
-                continue;
-            }
-            else {
-//                dispFrame(); // todo we should comment dispFrame for Task1 (to reduce computation needed)
-            }
+                      
+//            dispFrame();
+            
             // y 18 to y 60 + 18 (change to 2 or 3 layers?) todo
             for (int y = 18; y <= HEIGHT / 2 + 18; y += 2) {
                 for (int x = WIDTH / 16 * 2 - 2; x <= WIDTH / 16 * 2; ++x) {
@@ -181,31 +131,35 @@ public class Task1 {
             }
 
             if (blackCentre <= 9) {
-                if (robotMovement == RobotMovement.LEFT) {
-                    turnRight();
-                    Delay.msDelay(150);
-                }
-                else if (robotMovement == RobotMovement.RIGHT) {
-                    turnLeft();
-                    Delay.msDelay(150);
-                }
                 goStraight();
+                isAllWhite = false;
             }            
             else if (blackRight <= 27) {
                 if (robotMovement != RobotMovement.RIGHT) {
                     Delay.msDelay(30);
                     turnRight();
+                    isAllWhite = false;
                 }
             } 
             else if (blackLeft <= 27) {
                 if (robotMovement != RobotMovement.LEFT) {
                     Delay.msDelay(30);
                     turnLeft();
+                    isAllWhite = false; // should it turn false here?
+                    // or in a timer?
+                    // or in a > tacho count difference?
+                    // same logic will be needed for grey detection
                 }
             }
-            else if (blackLeft >= 81 && blackCentre >= 81 && blackRight >= 81) {
+            else if (blackLeftWide <= 5 && blackCentre <= 5 && blackRightWide <= 5) {
                 Sound.beep();
-//                turnAround(); // this is a blocking function
+                if (isAllWhite) {
+                    turnAround();                    
+                    isAllWhite = false;
+                }
+                else {
+                    isAllWhite = true;
+                }
             }
         }
         video.close();
@@ -284,10 +238,10 @@ public class Task1 {
     public static void turnAround() {
         motorLeft.setSpeed(180);
         motorRight.setSpeed(180);
-        motorRight.rotate(371, false);
+        motorRight.rotate(371, true);
         motorLeft.rotate(-371, false);
         goStraight();
-        Delay.msDelay(500);
+        Delay.msDelay(700);
         robotMovement = RobotMovement.TURN;
     }
 
