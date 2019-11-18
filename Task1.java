@@ -181,6 +181,14 @@ public class Task1 {
             }
 
             if (blackCentre <= 9) {
+                if (robotMovement == RobotMovement.LEFT) {
+                    turnRight();
+                    Delay.msDelay(150);
+                }
+                else if (robotMovement == RobotMovement.RIGHT) {
+                    turnLeft();
+                    Delay.msDelay(150);
+                }
                 goStraight();
             }            
             else if (blackRight <= 27) {
@@ -197,7 +205,7 @@ public class Task1 {
             }
             else if (blackLeft >= 81 && blackCentre >= 81 && blackRight >= 81) {
                 Sound.beep();
-                turnAround(); // this is a blocking function
+//                turnAround(); // this is a blocking function
             }
         }
         video.close();
