@@ -22,7 +22,7 @@ public class Task1 {
     private static int threshold = 90;
     private static RegulatedMotor motorRight = new EV3LargeRegulatedMotor(MotorPort.A);
     private static RegulatedMotor motorLeft = new EV3LargeRegulatedMotor(MotorPort.D);
-    private static EV3ColorSensor color = new EV3ColorSensor(SensorPort.S2); //colorSensor
+    private static EV3ColorSensor colorSensor = new EV3ColorSensor(SensorPort.S2); //colorSensor
     enum RobotMovement {
         LEFT,
         STRAIGHT,
@@ -50,28 +50,34 @@ public class Task1 {
         Video video = ev3.getVideo();
         video.open(WIDTH, HEIGHT);
         byte[] frame = video.createFrame();
-        int blackLeft, blackCentre, blackRight, blackLeftWide, blackRightWide, greyArea, greyCount = 0;
+        int blackTotal, blackLeft, blackCentre, blackRight, blackLeftWide, blackRightWide, greyArea, greyCount = 0, greyLoopCount = 0, whiteLoopCount = 0;
         boolean isAllWhite = false;
-        color.setCurrentMode("Ambient");
-        float[] sample = new float[color.sampleSize()];
+        colorSensor.setCurrentMode("Ambient");
+        float[] sample = new float[colorSensor.sampleSize()];
 
         while (Button.ESCAPE.isUp()) {
-            color.fetchSample(sample, 0);
-            if (sample[0] < 0.37 && sample[0] > 0.34) {
-                Delay.msDelay(40);
-                color.fetchSample(sample, 0);
+            --greyLoopCount;
+            if (greyLoopCount < 0) {
+                greyLoopCount = 0;
+                colorSensor.fetchSample(sample, 0);
                 if (sample[0] < 0.37 && sample[0] > 0.34) {
-                    goStraight();
-                    Delay.msDelay(140);
-                    stop();
-                    color.fetchSample(sample, 0);
+                    Delay.msDelay(40);
+                    colorSensor.fetchSample(sample, 0);
                     if (sample[0] < 0.37 && sample[0] > 0.34) {
-                        Delay.msDelay(700);
-                        Sound.beep();
+                        goStraight();
+                        Delay.msDelay(100);
+                        stop();
+                        colorSensor.fetchSample(sample, 0);
+                        if (sample[0] < 0.37 && sample[0] > 0.34) {
+                            Delay.msDelay(400);
+                            Sound.beep();
+                            greyLoopCount = 95;
+                        }
                     }
                 }
             }
             
+            blackTotal = 0;
             blackLeftWide = 0;
             blackLeft = 0;
             blackCentre = 0;
@@ -83,23 +89,11 @@ public class Task1 {
             // Create a frame of luminance values
             extractLuminanceValues(frame);   
 
-            // Adjust threshold?
-            if (Button.UP.isDown()) {
-                threshold +=5;
-                if (threshold > 255)
-                    threshold = 255;
-            }
-            else if (Button.DOWN.isDown()) { // if down is pushed down and hold, does threshold keep changing? - need to check, maybe that's why we were getting weird results 
-                threshold -=5;
-                if (threshold < 0)
-                    threshold = 0;
-            }
-                      
 //            dispFrame();
             
             // y 18 to y 60 + 18 (change to 2 or 3 layers?) todo
             for (int y = 18; y <= HEIGHT / 2 + 18; y += 2) {
-                for (int x = WIDTH / 16 * 2 - 2; x <= WIDTH / 16 * 2; ++x) {
+                for (int x = 0; x <= 5; ++x) {
                     if (luminanceFrame[y][x] < threshold) {
                         ++blackLeftWide;
                     }
@@ -119,48 +113,62 @@ public class Task1 {
                         ++blackRight;
                     }
                 }
-                for (int x = WIDTH / 16 * 14; x <= WIDTH / 16 * 14 + 2; ++x) {
+                for (int x = 154; x <= 159; ++x) {
                     if (luminanceFrame[y][x] < threshold) {
                         ++blackRightWide;
                     }
                 }
             }
+            // todo mark current position as a vector based on last position vector
+            // as a junction if blackLeft and/or blackRight is low and 
 
             if ((robotMovement == RobotMovement.LEFT || robotMovement == RobotMovement.RIGHT) && blackCentre >= 9) {
                 continue; // i.e keep turning until the centre is less black
             }
-
+            
+            blackTotal = blackLeftWide + blackLeft + blackCentre + blackRight + blackRightWide;
+            if (blackTotal <= 9) {
+                if (sample[0] > 0.37 || sample[0] < 0.34) {                    
+                    Sound.twoBeeps();
+                    if (isAllWhite) {
+                        turnAround();                    
+                        isAllWhite = false;
+                    }
+                    else {
+                        isAllWhite = true;
+                        goStraight();
+                        Delay.msDelay(350); // if delay doesn't work then use
+                        // x0 = currTachoCount, while tachoCount < x + x0
+                        // or a while loop counter (just like greyCount's implementation)
+                        continue;
+                    }
+                }
+            }
+            isAllWhite = false;
+            
             if (blackCentre <= 9) {
+                if (robotMovement == RobotMovement.RIGHT) {
+                    stop();
+                    motorRight.rotate(20, false);
+                }
+                else if (robotMovement == RobotMovement.LEFT) {
+                    stop();
+                    motorLeft.rotate(20, false);
+                }
                 goStraight();
-                isAllWhite = false;
-            }            
+            }
             else if (blackRight <= 27) {
                 if (robotMovement != RobotMovement.RIGHT) {
-                    Delay.msDelay(30);
+                    Delay.msDelay(20);
                     turnRight();
-                    isAllWhite = false;
                 }
-            } 
+            }
             else if (blackLeft <= 27) {
                 if (robotMovement != RobotMovement.LEFT) {
-                    Delay.msDelay(30);
+                    Delay.msDelay(20);
                     turnLeft();
-                    isAllWhite = false; // should it turn false here?
-                    // or in a timer?
-                    // or in a > tacho count difference?
-                    // same logic will be needed for grey detection
                 }
-            }
-            else if (blackLeftWide <= 5 && blackCentre <= 5 && blackRightWide <= 5) {
-                Sound.beep();
-                if (isAllWhite) {
-                    turnAround();                    
-                    isAllWhite = false;
-                }
-                else {
-                    isAllWhite = true;
-                }
-            }
+            }            
         }
         video.close();
     }
@@ -212,8 +220,8 @@ public class Task1 {
     }
 
     public static void turnLeft() {
-        motorLeft.setSpeed(45); // todo if needed we can multiply by normalisedTimeTurning which will be a variable between 0 and 1
-        motorRight.setSpeed(180); // try 140, it will turn slower so it'll give the robot more time to react after turning
+        motorLeft.setSpeed(45);
+        motorRight.setSpeed(180);
         motorLeft.backward();
         motorRight.forward();
         robotMovement = RobotMovement.LEFT;
@@ -238,10 +246,10 @@ public class Task1 {
     public static void turnAround() {
         motorLeft.setSpeed(180);
         motorRight.setSpeed(180);
-        motorRight.rotate(371, true);
-        motorLeft.rotate(-371, false);
+        motorRight.rotate(369, true);
+        motorLeft.rotate(-369, false);
         goStraight();
-        Delay.msDelay(700);
+        Delay.msDelay(80);
         robotMovement = RobotMovement.TURN;
     }
 
@@ -260,16 +268,4 @@ public class Task1 {
         motorRight.backward();
         robotMovement = RobotMovement.LEFT_REVERSE;
     }
-
-    //    public static void checkGrey() {
-    //        motorLeft.setSpeed(180);
-    //        motorRight.setSpeed(180);
-    //        for (int x = 0; x < 74; ++x) {
-    //            motorLeft.rotate(10, false);
-    //            motorRight.rotate(10, false);
-    //            // detect if grey, incrmeent
-    //        }
-    //        if grey > 60 : grey!
-    //        
-    //    }
 }
