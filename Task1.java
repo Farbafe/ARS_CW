@@ -11,6 +11,7 @@ import lejos.hardware.port.MotorPort;
 import lejos.hardware.port.SensorPort;
 import lejos.hardware.sensor.EV3ColorSensor;
 import lejos.hardware.sensor.EV3GyroSensor;
+import lejos.hardware.sensor.EV3UltrasonicSensor;
 import lejos.hardware.video.Video;
 import lejos.robotics.RegulatedMotor;
 import lejos.robotics.navigation.Move;
@@ -22,8 +23,10 @@ public class Task1 {
 
     private static int [][] luminanceFrame = new int [HEIGHT][WIDTH];
     private static int threshold = 90;
+    private static int turnAroundMultiplier = 1;
     private static RegulatedMotor motorRight = new EV3LargeRegulatedMotor(MotorPort.A);
     private static RegulatedMotor motorLeft = new EV3LargeRegulatedMotor(MotorPort.D);
+    private static EV3UltrasonicSensor ultrasonicSensor = new EV3UltrasonicSensor(SensorPort.S1); //UltrasonicSensor
     private static EV3ColorSensor colorSensor = new EV3ColorSensor(SensorPort.S2);
     private static EV3GyroSensor gyroSensor = new EV3GyroSensor(SensorPort.S3);
     
@@ -55,89 +58,136 @@ public class Task1 {
         video.open(WIDTH, HEIGHT);
         byte[] frame = video.createFrame();
         int blackTotal, blackLeft, blackCentre, blackRight, blackLeftWide, blackRightWide, 
-            greyLoopCount = 0, rightJunctionCount = 0, leftJunctionCount = 0;
+            greyLoopCount = 0, rightJunctionCount = 0, leftJunctionCount = 0, straightCount = 0, blackCount = 0;
         colorSensor.setCurrentMode("Ambient");
         gyroSensor.setCurrentMode("Angle");
+        ultrasonicSensor.enable();
+        ultrasonicSensor.getDistanceMode();
         float[] colorSample = new float[colorSensor.sampleSize()];
-        float[] gyroSample = new float[gyroSensor.sampleSize()];
-        Movement[] movements = new Movement[50]; // ArrayList is preferable but Array is simpler
+        float[] gyroSample = new float[gyroSensor.sampleSize()];        
+        float[] sampleUltrasonic = new float[ultrasonicSensor.sampleSize()];
+        Movement[] movements = new Movement[40]; // ArrayList is preferable but Array is simpler 
         Movement movementBuffer;
         RobotMovement previousMovement;
         
         while (Button.ESCAPE.isUp()) {
-            Delay.msDelay(500);
-            goStraight();
-            while (motorLeft.getTachoCount() < 1875) {
-                
-            }
-            stop();
-            Movement movement1 = new Movement(1875, 1875, 0);
-            Delay.msDelay(500);
-            motorLeft.rotate(-140, true);
-            motorRight.rotate(140, false);
-            gyroSensor.fetchSample(gyroSample, 0);
-            Delay.msDelay(500);
-            resetTachoCounts();
-            goStraight();
-            while (motorLeft.getTachoCount() < 1875) {
-                
-            }
-            stop();
-            int angleComplement = (int) (180 - gyroSample[0]);
-            Movement movement2 = new Movement(1875, 1875, gyroSample[0], movement1);
-            Movement movement3 = movement2.sum(movement1);
-            Delay.msDelay(250);
-            gyroSensor.reset();
-            Delay.msDelay(250);
-            do {
-                motorLeft.rotate(-12, true);
-                motorRight.rotate(12, false);
-                gyroSensor.fetchSample(gyroSample, 0);                
-            } while (180 + movement3.getBearing() - angleComplement + 180 >= gyroSample[0]);            
-            resetTachoCounts();
-            goStraight();
-            int tachoCount = movement3.getLeftTachoCount();
-            while (motorLeft.getTachoCount() < tachoCount) {
-                
-            }
-            stop();
-//            Delay.msDelay(1500);
-//            Movement movement4 = movement3.reverseMovement();
-            if (true) {
-                break;
-            }
+//            Sound.beep();
+//            Button.waitForAnyPress();
+//            resetTachoCounts();
+//            goStraight();
+//            while (motorLeft.getTachoCount() < 1865) {
+//                
+//            }
+//            stop();
+//            Movement movement1 = new Movement(1875, 1875, 0);
+//            Delay.msDelay(500);
+//            motorLeft.rotate(160, true);
+//            motorRight.rotate(-160, false);
+//            gyroSensor.fetchSample(gyroSample, 0);
+//            int angle1 = (int) gyroSample[0];
+//            Delay.msDelay(500);
+//            resetTachoCounts();
+//            goStraight();
+//            while (motorLeft.getTachoCount() < 1240) {
+//                
+//            }
+//            stop();
+//            Movement movement2 = new Movement(1250, 1250, gyroSample[0], movement1);
+//            goStraight();
+//            Delay.msDelay(380);
+//            turnAround();
+//            stop();
+//            resetTachoCounts();
+//            goStraight();
+//            int tachoCount = movement2.getLeftTachoCount();
+//            while (motorLeft.getTachoCount() < tachoCount) {
+//                
+//            }
+//            stop();
+//            Delay.msDelay(250);
+//            gyroSensor.reset();
+//            Delay.msDelay(250);
+//            do {
+//                motorLeft.rotate(-12, true);
+//                motorRight.rotate(12, false);
+//                gyroSensor.fetchSample(gyroSample, 0);                
+//            } while (Math.abs(gyroSample[0]) <= Math.abs(angle1));
+//            resetTachoCounts();
+//            goStraight();
+//            tachoCount = movement1.getLeftTachoCount();
+//            while (motorLeft.getTachoCount() < tachoCount) {
+//                
+//            }
+//            motorLeft.rotate(160, true);
+//            motorRight.rotate(-160, false);
+//            gyroSensor.fetchSample(gyroSample, 0);
+//            int angle2 = (int) gyroSample[0];
+//            resetTachoCounts();
+//            goStraight();
+//            while (motorLeft.getTachoCount() < 640) {
+//                
+//            }
+//            goStraight();
+//            Delay.msDelay(380);
+//            turnAround();
+//            stop();
+//            resetTachoCounts();
+//            Movement movement3 = new Movement(640, 640, gyroSample[0], movement2);            
+//            do {
+//                motorLeft.rotate(-12, true);
+//                motorRight.rotate(12, false);
+//                gyroSensor.fetchSample(gyroSample, 0);                
+//            } while (Math.abs(gyroSample[0]) <= Math.abs(angle1));
+//            while (motorLeft.getTachoCount() < 640) {
+//                
+//            }            
+//            stop();
+//            if (true) {
+//                break;
+//            }
             // end test
             
+            // test ultrasonic with 0.1, 0.15 and 0.2
+            // goStraight();
+            // see if it hits hte object or not
+            // test with webcam enabled
+            // test if 0.2 is too far ahead           
+            ultrasonicSensor.fetchSample(sampleUltrasonic, 0);
+            if (sampleUltrasonic[0] < 0.13) {
+                goBackward();
+                Delay.msDelay(360);
+                turnAround();
+                continue;
+            }
             
-            gyroSensor.fetchSample(gyroSample, 0);
+//            gyroSensor.fetchSample(gyroSample, 0);
             --greyLoopCount;
             if (greyLoopCount < 0) {
                 colorSensor.fetchSample(colorSample, 0);
-                if (colorSample[0] < 0.37 && colorSample[0] > 0.34) {
-                    Delay.msDelay(40);
+                if (colorSample[0] < 0.37 && colorSample[0] > 0.27) {
+                    Delay.msDelay(150);
                     colorSensor.fetchSample(colorSample, 0);
-                    if (colorSample[0] < 0.37 && colorSample[0] > 0.34) {
+                    if (colorSample[0] < 0.37 && colorSample[0] > 0.27) {
                         previousMovement = robotMovement;
-                        goStraight();
-                        Delay.msDelay(100);
+                        Delay.msDelay(200);
                         stop();
                         colorSensor.fetchSample(colorSample, 0);
-                        if (colorSample[0] < 0.37 && colorSample[0] > 0.34) {
+                        if (colorSample[0] < 0.37 && colorSample[0] > 0.27) {
                             Delay.msDelay(1000);
                             Sound.beep();
-                            greyLoopCount = 100;
-                            goBackward();
-                            Delay.msDelay(300);                           
-                            if (previousMovement == RobotMovement.STRAIGHT) {
-                                goStraight();
-                            }
-                            else if (previousMovement == RobotMovement.LEFT) {
-                                turnLeft();
-                            }
-                            else if (previousMovement == RobotMovement.RIGHT) {
-                                turnRight();
-                            }
+                            greyLoopCount = 100;                           
                         }
+                        goBackward();
+                        Delay.msDelay(350);                           
+                        if (previousMovement == RobotMovement.STRAIGHT) {
+                            goStraight();
+                        }
+                        else if (previousMovement == RobotMovement.LEFT) {
+                            turnLeft();
+                        }
+                        else if (previousMovement == RobotMovement.RIGHT) {
+                            turnRight();
+                        }                        
                     }
                 }
             }
@@ -152,8 +202,11 @@ public class Task1 {
 
             // Create a frame of luminance values
             extractLuminanceValues(frame);               
-            
-            for (int y = 22; y <= 57; y += 2) {
+                        
+            // 2 outer loops
+            // one wiht a rnage of 60 increment by 2
+            // and one with a lesser range but increment by 1
+            for (int y = 42; y <= 51; y += 2) { // 22, 57 // 27, 52
                 for (int x = 5; x <= 7; ++x) {
                     if (luminanceFrame[y][x] < threshold) {
                         ++blackLeftWide;
@@ -181,30 +234,33 @@ public class Task1 {
                 }
             }
 
-            if ((robotMovement == RobotMovement.LEFT || robotMovement == RobotMovement.RIGHT) && blackCentre >= 16) { // changing from 9 to 27 hopes to not need a correction after turning but it may not work for tighter turns so check and see.
+            if ((robotMovement == RobotMovement.LEFT || robotMovement == RobotMovement.RIGHT) && blackCentre >= 8) {
                 continue; // i.e keep turning until the centre is less black
             }
             
             blackTotal = blackLeftWide + blackLeft + blackCentre + blackRight + blackRightWide;
-            if (blackTotal >= 216) {
-                turnAround();
+            if (blackTotal >= 72) {
+                if (blackCount == 1) {
+                    blackCount = 0;
+                    turnAround();
+                    continue;
+                }
+                blackCount = 1;
+                goBackward();
+                Delay.msDelay(250);
                 continue;
+            }        
+            else {
+                blackCount = 0;
+                turnAroundMultiplier = 1;
             }
-            
-//            if (blackLeftWide <= 6 && blackRightWide <= 6) {
-//                Button.LEDPattern(1); // green
-//            }
-//            else if (blackLeftWide <= 6) {
-//                Button.LEDPattern(2); // red
-//            }
-//            else if (blackRightWide <= 6) {
-//                Button.LEDPattern(3); // orange
-//            }
-//            else {
-//                Button.LEDPattern(0); // no led
+//            else if (blackTotal < 6) {
+//                // todo go57 backwards and try again
+//                turnAround();
+//                continue;
 //            }
             
-            if (blackLeftWide <= 16) {
+            if (blackLeftWide <= 10) {
                 if (leftJunctionCount < 0) {
                     leftJunctionCount = 0;
                 }
@@ -213,7 +269,7 @@ public class Task1 {
             else {
                 --leftJunctionCount;           
             }
-            if (blackRightWide <= 16) {
+            if (blackRightWide <= 10) {
                 if (rightJunctionCount < 0) {
                     rightJunctionCount = 0;
                 }
@@ -223,43 +279,57 @@ public class Task1 {
                 --rightJunctionCount;           
             }
             
-            if (leftJunctionCount > 1) {
-                if (rightJunctionCount > 1) {
-                    // create left and right junction
-                }
-                else {
-                    // create left junction
-                }
-            }
-            if (rightJunctionCount > 1) {
-                if (leftJunctionCount > 1) {
-                    // create left and right junction
-                }
-                else {
-                    // create right junction
-                }
-                // reset counters to 0
-            } // todo junctions
+//            Button.LEDPattern(0);
+//            if (rightJunctionCount > 1) {  
+//                if (robotMovement == RobotMovement.RIGHT || robotMovement == RobotMovement.LEFT) {
+//                    continue;
+//                }              
+//                Button.LEDPattern(1);
+//                rightJunctionCount = 3;
+//                Delay.msDelay(100);
+//                turnRight();
+//                Delay.msDelay(100);
+//                // grab frames here and process until centre is less black
+//                continue;
+//                // create right junction
+//            } // todo junctions
+            
+            
+//            if (leftJunctionCount > 2) {
+//                if (robotMovement == RobotMovement.LEFT || robotMovement == RobotMovement.RIGHT) {
+//                    continue;
+//                }
+//                Button.LEDPattern(2);
+//                leftJunctionCount = 0;
+//                Delay.msDelay(100);
+//                turnLeft();
+//                Delay.msDelay(200);
+//                continue;
+//                // create left junction
+//            }
+            
                         
-            if (blackCentre <= 6) {
+            if (blackCentre <= 4) {
                 goStraight();                
             }
-            else if (blackRight <= 16) {
+            else if (blackRight <= 10) {
                 if (robotMovement != RobotMovement.RIGHT) {
+                    Delay.msDelay(180);
                     turnRight();
                     // save current movement
-                    gyroSensor.fetchSample(gyroSample, 0);
-                    movementBuffer = new Movement(motorLeft.getTachoCount(), motorRight.getTachoCount(), gyroSample[0]);
+//                    gyroSensor.fetchSample(gyroSample, 0);
+//                    movementBuffer = new Movement(motorLeft.getTachoCount(), motorRight.getTachoCount(), gyroSample[0]);
                 }
             }
-            else if (blackLeft <= 16) {
+            else if (blackLeft <= 10) {
                 if (robotMovement != RobotMovement.LEFT) {
+                    Delay.msDelay(180);
                     turnLeft();
                 }
             }            
-            else {
-                turnAround();
-            }
+//            else { // as a last resort
+//                turnAround();
+//            }
         }
         video.close();
     }
@@ -337,14 +407,15 @@ public class Task1 {
 
     public static void turnAround() {
         goBackward();
-        Delay.msDelay(80);
+        Delay.msDelay(150);
         motorLeft.setSpeed(180);
         motorRight.setSpeed(180);
-        motorRight.rotate(369, true);
-        motorLeft.rotate(-369, false);
-        Delay.msDelay(100); // let camera adjust
-        goStraight();
-        Delay.msDelay(40);
+        motorRight.rotate(400 - turnAroundMultiplier * 15, true);
+        motorLeft.rotate(-400 + turnAroundMultiplier * 15, false);
+        ++turnAroundMultiplier;
+        Delay.msDelay(250); // let camera adjust
+//        goStraight();
+//        Delay.msDelay(40);
 //        robotMovement = RobotMovement.TURN_AROUND;
     }
 
@@ -501,12 +572,25 @@ class Movement {
     }
     
     public int splitDistanceIntoEqualTachoCounts() {
-        int tachoCount = (int) (this.distance * 360 / 2 / 3.14159 / 1.52 / 2);
+        int tachoCount = (int) (this.distance * 360 / 2 / 3.14159 / 2.75 / 2);
         return tachoCount;
     }
     
     public Movement sum(Movement movement) {
         int tachoCount = this.splitDistanceIntoEqualTachoCounts() + movement.splitDistanceIntoEqualTachoCounts();
+//        int x = Math.atan2(y, x);
+//        int y = ;
+//        if (x < 0 && y < 0) {
+//            bearing = 180 - bearing;
+//            bearing *= -1;
+//        }
+//        else if (x < 0) {
+//            bearing -= 180;
+//            bearing *= -1;
+//        }
+//        else if (y < 0) {
+//            bearing *= -1;
+//        }
         int bearing = (this.bearing + movement.bearing) % 360;
         Movement sum = new Movement(tachoCount, tachoCount, bearing);
         return sum;
