@@ -95,7 +95,7 @@ public class Task1 {
                 if (ultrasonicLoopCount > 1) {
                     goBackward();
                     Delay.msDelay(350);
-                    turnAround();
+                    turnAround(); // this is a blocking function
                     goBackward();
                     Delay.msDelay(150);
                     stop();
@@ -130,7 +130,7 @@ public class Task1 {
                                     motorRight.rotate(12, false);
                                     gyroSensor.fetchSample(gyroSample, 0);                
                                   } while (Math.abs(gyroSample[0]) <= 10);
-                                  turnAround();
+                                  turnAround(); // this is a blocking function
                                   goStraight();
                                   isReturningToBase = true;
                                   continue;
@@ -300,7 +300,7 @@ public class Task1 {
                     resetTachoCounts();
                 }
             }
-            else {
+            else { // last resort just in case really, robot should not reach this condition
                 turnAround();
             }
         }
