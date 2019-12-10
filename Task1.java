@@ -248,7 +248,7 @@ public class Task1 {
 
             if (blackCentre <= 4) {
                 if (straightLoopCount > 50) {
-                    if (rightJunctionLoopCount > 2) { // todo add probability            
+                    if (rightJunctionLoopCount > 2) {
                         Button.LEDPattern(1); // greeen
                         rightJunctionLoopCount = 0;
                         goStraight();
@@ -461,7 +461,7 @@ class Movement {
     // Simple tests show that the basic idea works but it is too difficult
     // to implement on a bigger scale. Perhaps this class should be 
     // simplified via an interface? Or maybe use leJOS built-in packages.
-    public Movement position; // the movement that absolutely describes this movement from start
+    public Movement position; // the movement that absolutely describes this movement from origin
     private int leftTacho = 0;
     private int rightTacho = 0;
     private int distance;
@@ -545,8 +545,8 @@ class Movement {
         double y1 = this.leftTacho * Math.sin(this.bearing);
         double y2 = movement.getLeftTachoCount() * Math.sin(movement.getBearing());
         double bearing = Math.atan2(y1 + y2, x1 + x2);
-        double place = Math.sqrt((x1+x2)*(x1+x2)+((y1+y2)*(y1+y2)));
-        Movement sum = new Movement((int)place, (int)place, (float)bearing);
+        double distance = Math.sqrt((x1+x2)*(x1+x2)+((y1+y2)*(y1+y2)));
+        Movement sum = new Movement((int)distance, (int)distance, (float)bearing);
         return sum;
     }
     
