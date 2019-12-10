@@ -16,7 +16,7 @@ import lejos.hardware.video.Video;
 import lejos.robotics.RegulatedMotor;
 import lejos.robotics.navigation.Move;
 import lejos.utility.Delay;
-public class Task1 {
+public class Task4 {
     private static final int WIDTH = 160;
     private static final int HEIGHT = 120;
 
@@ -41,7 +41,7 @@ public class Task1 {
     }
     private static RobotMovement robotMovement = RobotMovement.NONE;
 
-    public Task1() {
+    public Task4() {
         // Initialize luminance frame
         for (int x=0; x<WIDTH; x += 1) {
             for (int y=0; y<HEIGHT; y += 1) {
