@@ -81,6 +81,7 @@ public class Task1 {
         Delay.msDelay(2000);
         while (Button.ESCAPE.isUp()) {        
             ultrasonicSensor.fetchSample(sampleUltrasonic, 0);
+            // todo fetch sample again
             if (sampleUltrasonic[0] < 0.14) {
                 goBackward();
                 Delay.msDelay(360);
@@ -88,7 +89,7 @@ public class Task1 {
                 goBackward();
                 Delay.msDelay(150);
                 stop();
-                Delay.msDelay(150);
+//                Delay.msDelay(150);
                 continue;
             }
 
@@ -111,7 +112,7 @@ public class Task1 {
                             Sound.beep();
                             greyLoopCount = 88;     
                             
-                            
+                            // todo put a back a small delay and fetchSample again
 
                             if (greyAreaDetectedCount == 3) {
                                 do {
@@ -566,7 +567,6 @@ class Movement {
         if (movement == null) {
             return this;
         }
-        // get x1 x2 y1 y2
         double x1 = this.leftTacho * Math.cos(this.bearing);
         double x2 = movement.getLeftTachoCount() * Math.cos(movement.getBearing());
         double y1 = this.leftTacho * Math.sin(this.bearing);
